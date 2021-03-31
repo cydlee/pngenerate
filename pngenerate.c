@@ -29,10 +29,11 @@
 #include <png.h>
 
 #define NAME "pngenerate"
-#define VERSION "1.0"
+#define VERSION "1.0.1"
 #define MAX_BYTES 524288000
 
-unsigned int strtouint (char* str);
+unsigned int strtouint (char* str, int base);
+int ishex (char ch);
 
 static int use_red;
 static int use_green;
@@ -57,6 +58,10 @@ int main (int argc, char *argv[])
 	unsigned char green;
 	unsigned char blue;
 	unsigned char alpha;
+
+	char* red_str = (char*) malloc (2);
+	char* green_str = (char*) malloc (2);
+	char* blue_str = (char*) malloc (2);
 
 	int c;
 	while (1)
@@ -93,28 +98,40 @@ int main (int argc, char *argv[])
 			case 0:
 				break;
 			case 'w':
-				width = strtouint (optarg);
+				width = strtouint (optarg, 10);
 				break;
 			case 'h':
-				height = strtouint (optarg);
+				height = strtouint (optarg, 10);
 				break;
 			case 'c':
-				printf ("color: '%s'", optarg);
+				red_str[0] = optarg[0];
+				red_str[1] = optarg[1];
+				green_str[0] = optarg[2];
+				green_str[1] = optarg[3];
+				blue_str[0] = optarg[4];
+				blue_str[1] = optarg[5];
+				printf ("%s%s%s\n", red_str, green_str, blue_str);
+				red = (unsigned char) strtouint (red_str, 16);
+				use_red = 1;
+				green = (unsigned char) strtouint (green_str, 16);
+				use_green = 1;
+				blue = (unsigned char) strtouint (blue_str, 16);
+				use_blue = 1;
 				break;
 			case 'r':
-				red = (unsigned char) strtouint (optarg);
+				red = (unsigned char) strtouint (optarg, 10);
 				use_red = 1;
 				break;
 			case 'g':
-				green = (unsigned char) strtouint (optarg);
+				green = (unsigned char) strtouint (optarg, 10);
 				use_green = 1;
 				break;
 			case 'b':
-				blue = (unsigned char) strtouint (optarg);
+				blue = (unsigned char) strtouint (optarg, 10);
 				use_blue = 1;
 				break;
 			case 'a':
-				alpha = (unsigned char) strtouint (optarg);
+				alpha = (unsigned char) strtouint (optarg, 10);
 				use_alpha = 1;
 				break;
 			case 'A':
@@ -129,6 +146,10 @@ int main (int argc, char *argv[])
 				abort ();
 		}
 	}
+
+	free (red_str);
+	free (green_str);
+	free (blue_str);
 
 	// Version message
 	//---------------------------------------------------------------------------------------------
@@ -160,13 +181,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 	//---------------------------------------------------------------------------------------------
 	if (help_flag)
 	{
-		printf ("Usage: %s [OPTION]... [-w <width>] [-h <height>] [OUTPUT FILE]...\n", NAME);
+		printf ("Usage: %s [-w <width>] [-h <height>] [OPTION]... [OUTPUT FILE]...\n", NAME);
 		// Implement: -w -h --width --height -v 
 		fputs ("\
 Generates a random png image.\n\
 \n\
-  -w, --width   Set width in pixels (required).\n\
-  -h, --height   Set height in pixels (required).\n\
+  -w, --width   Set width in pixels (required)\n\
+  -h, --height   Set height in pixels (required)\n\
   -c, --color   Set color using hexadecimal notation (e.g. ffffff)\n\
   -r, --red   Set red value (0-255)\n\
   -g, --green   Set green value (0-255)\n\
@@ -291,13 +312,26 @@ Generates a random png image.\n\
 	return EXIT_SUCCESS;
 }
 
-unsigned int strtouint (char* str)
+unsigned int strtouint (char* str, int base)
 {
 	char* x;
 	for (x = str; *x; x++)
 	{
-		if (!isdigit (*x))
+		if (base == 10 && !isdigit (*x))
+			return 0L;
+		else if (base == 16 && !isdigit (*x) && !ishex (*x))
 			return 0L;
 	}
-	return (strtoul (str, 0L, 10));
+	return (strtoul (str, 0L, base));
+}
+
+int ishex (char ch)
+{
+	char* hex;
+	for (hex = "abcdefABCDEF"; *hex; hex++)
+	{
+		if (ch == *hex)
+			return 1;
+	}
+	return 0;
 }
